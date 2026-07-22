@@ -117,6 +117,10 @@
   --ring: oklch(0.7 0.18 150);
   --incoming: oklch(0.72 0.14 250);
   --incoming-soft: oklch(0.28 0.05 250);
+  --received: oklch(0.75 0.15 150);
+  --received-soft: oklch(0.28 0.05 150);
+  --sent: oklch(0.72 0.14 250);
+  --sent-soft: oklch(0.28 0.05 250);
   --sidebar: oklch(0.208 0.042 265.755);
   --sidebar-foreground: oklch(0.984 0.003 247.858);
   --sidebar-primary: oklch(0.488 0.243 264.376);
