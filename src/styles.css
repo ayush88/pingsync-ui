@@ -32,6 +32,10 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
+  --color-received: var(--received);
+  --color-received-soft: var(--received-soft);
+  --color-sent: var(--sent);
+  --color-sent-soft: var(--sent-soft);
   --color-incoming: var(--incoming);
   --color-incoming-soft: var(--incoming-soft);
   --color-chart-1: var(--chart-1);
