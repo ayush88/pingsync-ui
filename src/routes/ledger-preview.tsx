@@ -165,7 +165,7 @@ function LedgerPreview() {
           </div>
         </header>
 
-        <Variant<ThreeKey>
+        <Variant
           title="Variant A"
           subtitle="Received / Sent / All — default Received"
           tabs={[
@@ -176,7 +176,7 @@ function LedgerPreview() {
           seed={SEED}
         />
 
-        <Variant<TwoKey>
+        <Variant
           title="Variant B"
           subtitle="Received / Sent only — cleaner, no All"
           tabs={[
