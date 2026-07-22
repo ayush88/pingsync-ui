@@ -76,6 +76,10 @@
   --ring: oklch(0.62 0.19 150);
   --incoming: oklch(0.5 0.16 250);
   --incoming-soft: oklch(0.95 0.04 250);
+  --received: oklch(0.55 0.16 150);
+  --received-soft: oklch(0.94 0.06 150);
+  --sent: oklch(0.5 0.16 250);
+  --sent-soft: oklch(0.95 0.04 250);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
