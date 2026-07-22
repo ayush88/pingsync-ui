@@ -58,9 +58,6 @@ const SEED: LedgerEntry[] = [
   },
 ];
 
-type ThreeKey = "received" | "sent" | "all";
-type TwoKey = "received" | "sent";
-void 0 as unknown as ThreeKey | TwoKey;
 
 
 function Variant({
