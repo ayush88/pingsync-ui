@@ -7,7 +7,7 @@ export function LedgerTabs<T extends TabKey>({
   active,
   onChange,
 }: {
-  tabs: { key: T; label: string; count: number }[];
+  tabs: { key: T; label: string; indicator?: boolean }[];
   active: T;
   onChange: (key: T) => void;
 }) {
@@ -35,13 +35,15 @@ export function LedgerTabs<T extends TabKey>({
               }`}
             >
               {t.label}
-              <span
-                className={`tabular text-[10px] font-semibold ${
-                  isActive ? "text-primary" : "text-muted-foreground/70"
-                }`}
-              >
-                {t.count}
-              </span>
+              {t.indicator && (
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.6 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.15 }}
+                  className="h-1.5 w-1.5 rounded-full bg-primary motion-reduce:transition-none"
+                  aria-label="New"
+                />
+              )}
             </span>
           </button>
         );
