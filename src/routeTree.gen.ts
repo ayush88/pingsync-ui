@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as NotificationsRouteImport } from './routes/notifications'
-import { Route as LedgerPreviewRouteImport } from './routes/ledger-preview'
 import { Route as IndexRouteImport } from './routes/index'
 
 const SettingsRoute = SettingsRouteImport.update({
@@ -24,11 +23,6 @@ const NotificationsRoute = NotificationsRouteImport.update({
   path: '/notifications',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LedgerPreviewRoute = LedgerPreviewRouteImport.update({
-  id: '/ledger-preview',
-  path: '/ledger-preview',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,34 +31,30 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/ledger-preview': typeof LedgerPreviewRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/ledger-preview': typeof LedgerPreviewRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/ledger-preview': typeof LedgerPreviewRoute
   '/notifications': typeof NotificationsRoute
   '/settings': typeof SettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/ledger-preview' | '/notifications' | '/settings'
+  fullPaths: '/' | '/notifications' | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/ledger-preview' | '/notifications' | '/settings'
-  id: '__root__' | '/' | '/ledger-preview' | '/notifications' | '/settings'
+  to: '/' | '/notifications' | '/settings'
+  id: '__root__' | '/' | '/notifications' | '/settings'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  LedgerPreviewRoute: typeof LedgerPreviewRoute
   NotificationsRoute: typeof NotificationsRoute
   SettingsRoute: typeof SettingsRoute
 }
@@ -85,13 +75,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotificationsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/ledger-preview': {
-      id: '/ledger-preview'
-      path: '/ledger-preview'
-      fullPath: '/ledger-preview'
-      preLoaderRoute: typeof LedgerPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -104,7 +87,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  LedgerPreviewRoute: LedgerPreviewRoute,
   NotificationsRoute: NotificationsRoute,
   SettingsRoute: SettingsRoute,
 }
