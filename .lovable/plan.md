@@ -1,90 +1,54 @@
-# PingSync — Design Refresh v3
+# Home + Settings polish
 
-## 1. Ingest the current UI
+## 1. Ship Variant B, retire the preview
+- Home ledger uses the 2-tab layout: **Received / Sent**, default Received.
+- Delete `src/routes/ledger-preview.tsx` and remove the "Compare tab layouts" link from home.
 
-Bring the codebase in line with the screenshots you shared:
-- **Home**: header with logo + subtitle + settings gear, big SMS Auto-Forwarding switch card, Diagnostics row that expands into a details panel (Delivery / Encryption / Registration + "Test round-trip"), and the Sync Ledger.
-- **Settings**: keep as-is (Push message config + loop-protection footer).
-- **Typography**: drop the Inter Google Font. Use the OS default stack — `-apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif` — so it renders in Samsung One UI / Roboto natively on Android and doesn't cost a font request.
+## 2. Tab bar cleanup
+- Drop count badges — labels only ("Received", "Sent").
+- **New-arrivals indicator**: a small green dot to the right of the "Received" label when there are unread received rows; it disappears once the Received tab is viewed or all unread rows are cleared/copied. No pulsing/breathing loop — just a static 6px dot that fades in over 150ms (respects `prefers-reduced-motion`).
+- Keep the sliding underline (`layoutId`) as the only motion on tab switch.
 
-## 2. Sync Ledger — tabs (two variants to compare)
+## 3. Section rename
+Rename **"Recent Sync Ledger"** to **"Recent activity"** (short, plain, matches what users scan for). Alternates if you prefer: "Recent OTPs", "Activity". I'll go with **Recent activity** unless you pick another.
 
-Build a `/ledger-preview` route that shows both variants stacked, each fully functional, so you can pick:
+## 4. Section header controls
+Replace the current single "Clear all" text button with a right-aligned icon row:
+- **Refresh** icon button (`RotateCw`) — spins 360° on tap, then toast "Up to date · just now". Disabled while spinning.
+- **Clear all** icon button (`Trash2`) — muted; opens a confirmation.
 
-- **Variant A — Received / Sent / All** (default tab: Received)
-- **Variant B — Received / Sent** (no All; default: Received)
+Layout: `Recent activity` on the left, `[⟳] [🗑]` on the right, both 32px hit targets, muted-foreground, hover→foreground.
 
-Tab bar sits directly under the "RECENT SYNC LEDGER" label, sliding-underline indicator, count badge next to each tab label (e.g. `Received · 3`). Once you pick, the winner ships to `/` and the preview route is removed.
+## 5. Clear-all confirmation + undo
+- Tapping Clear all opens a **bottom sheet** on mobile (shadcn `Sheet` from bottom) / **Dialog** on ≥sm: title "Clear all activity?", body "This removes {n} entries from the ledger. Your paired device is not affected.", actions **Cancel** (ghost) and **Clear all** (destructive).
+- On confirm: rows animate out (stagger 30ms, fade + collapse height), then a toast "Cleared {n} entries" with an **Undo** action that restores the full list in original order.
 
-## 3. Chip colors & row treatment
+## 6. Diagnostics CTA
+Restore the CTA from the earlier screenshot. Inside the expanded diagnostics panel, below the 3 status lines, add a right-aligned pill button **"Test round-trip"** (outline, `Zap` icon). On tap:
+- Button shows inline spinner + label "Testing…".
+- After ~1.2s (mocked), morphs to a green check + "Round-trip 842 ms" for 2s, then reverts.
+- Toast on failure path (not wired now, but leave the code path).
 
-- **Received** → green chip background behind OTP + green diagonal-down-left arrow (↙) on a green tinted circle. Green stays the brand color and now highlights the thing that matters most.
-- **Sent** → blue chip background behind OTP + blue diagonal-up-right arrow (↗) on a blue tinted circle.
-- Same tabular-numeral OTP scaling (auto-shrinks for 9–10 digit).
+## 7. Settings page polish
+You're right that Settings hasn't moved. Applying the same visual language as home:
+- Group into two cards with clearer hierarchy: **Pairing** (publish/subscribe topics + generate) and **Security** (encryption passphrase + show/hide eye toggle).
+- Move **Save configuration** into a sticky footer bar at the bottom of the viewport on mobile (safe-area padded), so it's always reachable while editing long fields. **Send test message** becomes a secondary ghost link inside the Pairing card, next to "Generate random topics".
+- Passphrase field: add show/hide toggle (`Eye`/`EyeOff`), a subtle strength meter (weak/ok/strong based on length + charset), and a "Copy" affordance that only appears after focus-out with a value present.
+- Filter rules accordion: same as today but with a monospace chip preview of the compiled regex (e.g. `/\b\d{4,8}\b/`) and inline validation (red border + tooltip on invalid regex).
+- Animate accordion open/close with the same spring tokens used on home; page transition uses the shared route-level fade+slide.
 
-## 4. Swipe-to-reveal (replaces swipe-to-dismiss)
-
-Swiping a row left no longer removes it. Instead it reveals a two-action tray behind the row:
-- **Copy** (green) — copies the OTP, row springs back, toast confirms.
-- **Delete** (muted red) — removes with undo toast (same undo behavior as before, just now behind an explicit tap).
-
-Rubber-band resistance past the reveal threshold; row snaps to either closed or open state; tapping the row body while open closes it.
-
-## 5. Animation pass (the big investment)
-
-Introduce `framer-motion` and apply consistent spring tokens (`{ type: "spring", stiffness: 380, damping: 30 }` for taps, gentler for layout).
-
-**Toggle + status**
-- Switch thumb springs; track color cross-fades between muted and green over 240ms.
-- "Active · listening" label cross-fades in with a 4px slide-up, and the label gets a tiny **pulsing green dot** (breathing 1.6s loop) so "listening" reads at a glance.
-
-**Diagnostics**
-- Chevron rotates with spring, panel expands with `height auto` layout animation and content fades in staggered (3 rows, 40ms stagger).
-
-**Ledger rows**
-- Mount stagger: 60ms per row, fade + 8px slide-up.
-- Tap ripple: subtle 0.98 scale on press.
-- Expand/collapse: shared-layout height animation, body text fades in.
-- Swipe-to-reveal: gesture-driven translateX with rubber-band; action tray icons scale from 0.8→1 as they cross reveal threshold.
-- Delete: row collapses height to 0 + fades; undo toast slides up with spring; restoring animates it back into position at its original index.
-
-**Tab switching**
-- Sliding underline (`layoutId="tab-underline"`) glides between tabs.
-- List cross-fades with a 12px directional slide (matches swipe direction between tabs).
-- Empty states fade in with a friendly line ("No sent OTPs yet — send a test from Settings.").
-
-**Copy / feedback**
-- Copy button morphs icon → checkmark with a spring scale, 900ms hold, then reverts.
-- Toasts use spring slide-up with slight overshoot.
-
-**Page transitions**
-- Home ↔ Settings ↔ Notifications get a 180ms fade + 6px slide via route-level `AnimatePresence`.
-
-## 6. Additional improvements I recommend
-
-1. **Sticky mini-header** on scroll: once you scroll past the SMS card, a slim bar with the toggle state ("Active · listening" + tiny switch) sticks to the top so the primary control is always reachable.
-2. **Long-press on OTP chip** = instant copy (skip expanding the row). Haptic-style scale feedback.
-3. **Unread indicator**: a green dot on the left edge of rows that arrived since last app open — clears when you tap or copy.
-4. **Diagnostics dot semantic**: green = both fresh (<1h), amber = one stale, red = failure. Currently it's static.
-5. **Empty ledger illustration**: a single monoline echo-bubble mark, muted, with one-line copy — better than the current plain text.
-6. **Reduced motion**: honor `prefers-reduced-motion` — animations collapse to simple opacity fades.
+If you'd rather keep Settings visually identical for now and only polish home, say the word and I'll skip section 7.
 
 ## Technical notes
 
-- Add `framer-motion` (`bun add framer-motion`).
-- Update `src/styles.css`: remove Google Fonts import, set system font stack on `body`, add `--incoming` (green) and `--outgoing` (blue) semantic tokens plus their `-foreground` and `-muted` variants (OKLCH). Add reduced-motion media query zeroing out transform durations.
-- Refactor `src/components/ledger-row.tsx`:
-  - Replace pointer-swipe-dismiss with framer-motion `drag="x"` + `dragConstraints` reveal.
-  - Use `motion.div` with `layout` for expand/collapse.
-  - Extract arrow chip + OTP chip into small subcomponents so tab variants can reuse.
-- New `src/components/ledger-tabs.tsx` — controlled tabs with `layoutId` underline; accepts `tabs` array so Variant A and B share the component.
-- Update `src/routes/index.tsx` — swap in the chosen (or, temporarily, Variant A) tabbed ledger, add sticky mini-header via `IntersectionObserver`, refined Diagnostics.
-- New `src/routes/ledger-preview.tsx` — renders both variants with labels so you can compare.
-- Update `src/routes/__root.tsx` — remove Inter link tag; wrap `<Outlet />` in `AnimatePresence` for page transitions.
-- `src/components/ping-notification.tsx` — no functional changes; just verify chip colors still match the new incoming/outgoing tokens (green for received notifications).
+- `src/routes/index.tsx`: track `lastViewedReceivedAt` in state; `hasUnreadReceived = entries.some(e => e.direction==='incoming' && e.unread && !viewed)`. Reset when `tab==='received'` mounts. Add refresh + clear-all handlers; wire shadcn `Sheet` (mobile) via `useIsMobile` to switch between Sheet and `AlertDialog`.
+- `src/components/ledger-tabs.tsx`: remove `count` prop, add optional `indicator?: boolean` per tab; render dot after label.
+- Diagnostics: extract into `src/components/diagnostics.tsx` to keep index.tsx small; owns the test-round-trip state machine.
+- `src/routes/settings.tsx`: split into `PairingCard`, `SecurityCard`, `FilterRulesCard` subcomponents in-file; add sticky footer using `sticky bottom-0` with `bg-background/80 backdrop-blur` and `pb-[env(safe-area-inset-bottom)]`.
+- Delete `src/routes/ledger-preview.tsx`; regenerate route tree happens automatically.
+- No new dependencies.
 
-## Out of scope for this pass
-
-- Notification icon redesign (already shipped, keeping current mono glyph).
-- Settings page visual changes.
-- Any backend / real SMS wiring.
+## Out of scope
+- Notification designs (unchanged).
+- Backend / real SMS wiring.
+- Icon redesign.
