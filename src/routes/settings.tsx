@@ -175,16 +175,9 @@ function SecurityCard({ pass, setPass }: { pass: string; setPass: (v: string) =>
         <div className="flex items-center gap-2">
           <div className="flex flex-1 gap-1">
             {[1, 2, 3].map((n) => (
-              <motion.div
+              <div
                 key={n}
-                initial={false}
-                animate={{
-                  backgroundColor:
-                    strength.level >= n
-                      ? getComputedStyle(document.documentElement).getPropertyValue("--tmp") || undefined
-                      : undefined,
-                }}
-                className={`h-1 flex-1 rounded-full transition-colors ${
+                className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
                   strength.level >= n ? strength.color : "bg-muted"
                 }`}
               />
