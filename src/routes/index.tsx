@@ -1,14 +1,28 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
-import { Settings as SettingsIcon, ChevronDown, Inbox } from "lucide-react";
+import { Settings as SettingsIcon, Inbox, RotateCw, Trash2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetFooter } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { PingSyncLogo } from "@/components/logo";
 import { LedgerRow, type LedgerEntry } from "@/components/ledger-row";
 import { LedgerTabs } from "@/components/ledger-tabs";
+import { Diagnostics } from "@/components/diagnostics";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -61,29 +75,31 @@ const SEED: LedgerEntry[] = [
   },
 ];
 
-type TabKey = "received" | "sent" | "all";
+type TabKey = "received" | "sent";
 
 const spring = { type: "spring" as const, stiffness: 380, damping: 32 };
 
 function Index() {
   const [active, setActive] = useState(true);
   const [entries, setEntries] = useState<LedgerEntry[]>(SEED);
-  const [diagOpen, setDiagOpen] = useState(false);
   const [tab, setTab] = useState<TabKey>("received");
+  const [receivedViewed, setReceivedViewed] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const isMobile = useIsMobile();
 
-  const counts = useMemo(
-    () => ({
-      received: entries.filter((e) => e.direction === "incoming").length,
-      sent: entries.filter((e) => e.direction === "outgoing").length,
-      all: entries.length,
-    }),
-    [entries],
+  const hasUnreadReceived = useMemo(
+    () => !receivedViewed && entries.some((e) => e.direction === "incoming" && e.unread),
+    [entries, receivedViewed],
   );
+
+  useEffect(() => {
+    if (tab === "received") setReceivedViewed(true);
+  }, [tab]);
 
   const visible = useMemo(() => {
     if (tab === "received") return entries.filter((e) => e.direction === "incoming");
-    if (tab === "sent") return entries.filter((e) => e.direction === "outgoing");
-    return entries;
+    return entries.filter((e) => e.direction === "outgoing");
   }, [entries, tab]);
 
   const dismiss = (id: string) => {
@@ -98,6 +114,29 @@ function Index() {
       },
     });
   };
+
+  const handleRefresh = () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+      toast.success("Up to date · just now");
+    }, 900);
+  };
+
+  const doClearAll = () => {
+    const snapshot = entries;
+    setEntries([]);
+    setConfirmOpen(false);
+    toast(`Cleared ${snapshot.length} ${snapshot.length === 1 ? "entry" : "entries"}`, {
+      action: {
+        label: "Undo",
+        onClick: () => setEntries(snapshot),
+      },
+    });
+  };
+
+  const confirmBody = `This removes ${entries.length} ${entries.length === 1 ? "entry" : "entries"} from the ledger. Your paired device is not affected.`;
 
   return (
     <main className="min-h-screen bg-background px-5 pb-16 pt-8 sm:pt-12">
@@ -165,76 +204,49 @@ function Index() {
         </Card>
 
         {/* Diagnostics */}
-        <div>
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.99 }}
-            onClick={() => setDiagOpen((v) => !v)}
-            className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left hover:bg-muted/50 transition-colors"
-          >
-            <span className="relative flex h-2 w-2">
-              <motion.span
-                className="absolute inset-0 rounded-full bg-primary"
-                animate={{ opacity: [1, 0.3, 1] }}
-                transition={{ duration: 1.8, repeat: Infinity }}
-              />
-            </span>
-            <span className="flex-1 text-xs text-muted-foreground">
-              Diagnostics · sent 48m ago · received 2m ago
-            </span>
-            <motion.div animate={{ rotate: diagOpen ? 180 : 0 }} transition={spring}>
-              <ChevronDown className="h-4 w-4 text-muted-foreground" />
-            </motion.div>
-          </motion.button>
-          <AnimatePresence initial={false}>
-            {diagOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0, marginTop: 0 }}
-                animate={{ height: "auto", opacity: 1, marginTop: 8 }}
-                exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                transition={{ ...spring, damping: 28 }}
-                className="overflow-hidden"
-              >
-                <div className="rounded-xl bg-muted/50 px-4 py-3 text-xs text-muted-foreground">
-                  {["Publish topic · reachable", "Subscribe topic · listening", "Encryption · AES-256-GCM"].map(
-                    (line, i) => (
-                      <motion.p
-                        key={line}
-                        initial={{ opacity: 0, x: -4 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: i * 0.04 }}
-                      >
-                        {line}
-                      </motion.p>
-                    ),
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        <Diagnostics />
 
         {/* Ledger */}
         <section className="space-y-3">
           <div className="flex items-center justify-between px-1">
             <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-              Recent Sync Ledger
+              Recent activity
             </h2>
-            <button
-              type="button"
-              onClick={() => setEntries([])}
-              className="text-xs text-muted-foreground hover:text-foreground"
-            >
-              Clear all
-            </button>
+            <div className="flex items-center gap-1">
+              <motion.button
+                type="button"
+                onClick={handleRefresh}
+                disabled={refreshing}
+                whileTap={{ scale: 0.9 }}
+                aria-label="Refresh"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-60"
+              >
+                <motion.span
+                  animate={refreshing ? { rotate: 360 } : { rotate: 0 }}
+                  transition={refreshing ? { duration: 0.9, ease: "easeInOut" } : { duration: 0 }}
+                  className="inline-flex"
+                >
+                  <RotateCw className="h-4 w-4" />
+                </motion.span>
+              </motion.button>
+              <motion.button
+                type="button"
+                onClick={() => entries.length > 0 && setConfirmOpen(true)}
+                disabled={entries.length === 0}
+                whileTap={{ scale: 0.9 }}
+                aria-label="Clear all"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:opacity-40"
+              >
+                <Trash2 className="h-4 w-4" />
+              </motion.button>
+            </div>
           </div>
 
           <LayoutGroup id="home-tabs">
             <LedgerTabs
               tabs={[
-                { key: "received", label: "Received", count: counts.received },
-                { key: "sent", label: "Sent", count: counts.sent },
-                { key: "all", label: "All", count: counts.all },
+                { key: "received", label: "Received", indicator: hasUnreadReceived },
+                { key: "sent", label: "Sent" },
               ]}
               active={tab}
               onChange={setTab}
@@ -256,9 +268,7 @@ function Index() {
                     <p className="text-sm text-muted-foreground">
                       {tab === "sent"
                         ? "No sent OTPs yet — send a test from Settings."
-                        : tab === "received"
-                          ? "No OTPs received — they'll show up here instantly."
-                          : "No syncs yet."}
+                        : "No OTPs received — they'll show up here instantly."}
                     </p>
                   </div>
                 ) : (
@@ -276,10 +286,6 @@ function Index() {
             Swipe a row left to reveal Copy / Delete.{" "}
             <Link to="/notifications" className="underline underline-offset-2 hover:text-foreground">
               Preview notifications
-            </Link>{" "}
-            ·{" "}
-            <Link to="/ledger-preview" className="underline underline-offset-2 hover:text-foreground">
-              Compare tab layouts
             </Link>
           </p>
         </section>
@@ -288,6 +294,41 @@ function Index() {
           PingSync • End-to-end encrypted
         </p>
       </div>
+
+      {/* Clear-all confirmation */}
+      {isMobile ? (
+        <Sheet open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <SheetContent side="bottom" className="rounded-t-2xl">
+            <SheetHeader className="text-left">
+              <SheetTitle>Clear all activity?</SheetTitle>
+              <SheetDescription>{confirmBody}</SheetDescription>
+            </SheetHeader>
+            <SheetFooter className="mt-4 flex-row gap-2 sm:justify-end">
+              <Button variant="ghost" onClick={() => setConfirmOpen(false)} className="flex-1 sm:flex-none">
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={doClearAll} className="flex-1 sm:flex-none">
+                Clear all
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Clear all activity?</AlertDialogTitle>
+              <AlertDialogDescription>{confirmBody}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={doClearAll} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Clear all
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
     </main>
   );
 }
